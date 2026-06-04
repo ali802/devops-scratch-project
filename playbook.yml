@@ -1,0 +1,9 @@
+---
+- name: Configure Target Web Server using Roles
+  hosts: webservers
+  become: true
+
+  roles:
+    - nginx
+
+
