@@ -1,9 +1,9 @@
 pipeline {
     agent {
         docker {
-            // Use the official HashiCorp image that ALREADY has terraform pre-installed
-            image 'hashicorp/terraform:1.5.7'
-            // Crucial: Combines the official image with root tracking execution powers
+            // This certified image comes pre-baked with Terraform, Ansible, Git, and SSH keys utilities!
+            image 'zenika/terraform-ansible:latest'
+            // Keep root execution so Jenkins tracks processes smoothly inside the container environment
             args '-u root --entrypoint='
         }
     }
@@ -15,24 +15,26 @@ pipeline {
     }
 
     stages {
-        stage('Setup Additional Tools') {
-            steps {
-                echo 'Terraform is already natively installed! Adding ansible and git...'
-                // Since this is an official hashicorp alpine base, we just add ansible and git
-                sh 'apk add --no-cache ansible openssh-client git'
-            }
-        }
-
         stage('Terraform Init & Plan') {
             steps {
-                sh 'terraform init -reconfigure'
-                sh 'terraform plan -out=tfplan'
+                echo 'Prerequisites are pre-baked! Jumping straight into deployment...'
+                // Explicitly forcing variables inside the shell execution line to guarantee AWS reads them
+                sh '''
+                    export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
+                    export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
+                    terraform init -reconfigure
+                    terraform plan -out=tfplan
+                '''
             }
         }
 
         stage('Terraform Apply') {
             steps {
-                sh 'terraform apply -auto-approve tfplan'
+                sh '''
+                    export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
+                    export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
+                    terraform apply -auto-approve tfplan
+                '''
             }
         }
 
