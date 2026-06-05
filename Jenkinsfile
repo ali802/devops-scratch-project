@@ -1,14 +1,9 @@
 pipeline {
     agent {
         docker {
-            // Native, lightweight Terraform image
             image 'hashicorp/terraform:1.5.7'
             args '-u root --entrypoint='
         }
-    }
-
-    environment {
-        ANSIBLE_HOST_KEY_CHECKING = 'False'
     }
 
     stages {
@@ -39,17 +34,26 @@ pipeline {
 
         stage('Ansible Deploy') {
             steps {
-                echo 'Setting up Ansible and deploying configuration...'
-                // Install Ansible and OpenSSH utilities dynamically into the lightweight container
+                echo 'Setting up Ansible environment...'
                 sh 'apk add --no-cache ansible openssh-client'
 
-                // Securely extract your SSH Private Key to authenticate with your EC2 instances
+                // MATCHING YOUR OUTPUT FILE: Extracting target_server_public_ip
+                script {
+                    NEW_IP = sh(script: "terraform output -raw target_server_public_ip", returnStdout: true).trim()
+                    echo "Fetched brand new EC2 IP from Terraform: ${NEW_IP}"
+                }
+
                 withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY_PATH')]) {
                     sh """
-                        # Dynamically inject the temporary secure key path into your inventory file
-                        sed -i "s|ansible_ssh_private_key_file=[^ ]*|ansible_ssh_private_key_file=${SSH_KEY_PATH}|g" inventory.ini
+                        # Re-write the inventory file from scratch with the dynamic IP and key path
+                        echo "[webserver]" > inventory.ini
+                        echo "${NEW_IP} ansible_user=ubuntu ansible_ssh_private_key_file=${SSH_KEY_PATH}" >> inventory.ini
                         
-                        # Execute the playbook deployment
+                        echo "--- Current Dynamic Inventory Configuration ---"
+                        cat inventory.ini
+                        echo "------------------------------------------------"
+
+                        # Execute the playbook deployment using the fresh host address
                         ansible-playbook -i inventory.ini playbook.yml
                     """
                 }
