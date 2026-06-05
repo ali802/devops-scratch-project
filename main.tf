@@ -19,16 +19,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-# 1. NEW BLOCK: Create the S3 Bucket for future State Storage
-resource "aws_s3_bucket" "state_bucket" {
-  bucket        = var.state_bucket_name
-  force_destroy = true # This allows Terraform to cleanly delete the bucket later if needed
-
-  tags = {
-    Name = "DevOps-Scratch-State-Bucket"
-  }
-}
-
 # 2. Create Security Group ( unchanged )
 resource "aws_security_group" "web_sg" {
   name        = "scratch-project-sg"

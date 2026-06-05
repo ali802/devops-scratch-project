@@ -9,7 +9,4 @@ variable "ssh_key_name" {
   description = "The name of your existing AWS EC2 Key Pair"
 }
 
-variable "state_bucket_name" {
-  type        = string
-  description = "The globally unique name for the S3 bucket"
-}
+
