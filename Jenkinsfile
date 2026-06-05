@@ -1,8 +1,8 @@
 pipeline {
     agent {
         docker {
-            // A certified public devops image containing fully functioning bash, git, and terraform
-            image 'alpine/terragrunt:tk-1.5-tf-1.5'
+            // Using the official, guaranteed public ultra-lightweight Alpine image
+            image 'alpine:3.20'
         }
     }
 
@@ -13,6 +13,14 @@ pipeline {
     }
 
     stages {
+        stage('Setup Tools Inside Container') {
+            steps {
+                echo 'Installing infrastructure tools inside the pristine container environment...'
+                // apk is the official package manager for Alpine - fast, lightweight, and rock solid
+                sh 'apk add --no-cache terraform ansible openssh-client git'
+            }
+        }
+
         stage('Terraform Init & Plan') {
             steps {
                 sh 'terraform init -reconfigure'
@@ -26,9 +34,14 @@ pipeline {
             }
         }
 
-        stage('Ansible Deploy Note') {
+        stage('Ansible Deploy') {
             steps {
-                echo "Infrastructure deployed successfully via clean Docker automation!"
+                withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY_PATH')]) {
+                    sh """
+                        sed -i "s|ansible_ssh_private_key_file=[^ ]*|ansible_ssh_private_key_file=${SSH_KEY_PATH}|g" inventory.ini
+                        ansible-playbook -i inventory.ini playbook.yml
+                    """
+                }
             }
         }
     }
