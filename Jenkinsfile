@@ -52,7 +52,7 @@ pipeline {
 
                     sh """
                         # Re-write the inventory file from scratch with the dynamic IP and key path
-                        echo "[webserver]" > inventory.ini
+                        echo "[webservers]" > inventory.ini
                         echo "${NEW_IP} ansible_user=ubuntu ansible_ssh_private_key_file=${SSH_KEY_PATH}" >> inventory.ini
                         
                         echo "--- Current Dynamic Inventory Configuration ---"
