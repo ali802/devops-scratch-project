@@ -60,7 +60,7 @@ pipeline {
                         echo "------------------------------------------------"
 
                         # Execute the playbook deployment using the fresh host address
-                        ansible-playbook -i inventory.ini playbook.yml
+                        ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.ini playbook.yml
                     """
                 }
             }
